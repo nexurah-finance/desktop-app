@@ -5,7 +5,7 @@
   "main": "main/main.js",
   "scripts": {
     "dev:next": "next dev",
-    "dev:electron": "wait-on http://localhost:3001 && electron .",
+    "dev:electron": "wait-on http://localhost:3000 && electron .",
     "dev": "concurrently \"npm run dev:next\" \"npm run dev:electron\"",
     "build": "next build",
     "package": "npm run build && electron-builder --win",
