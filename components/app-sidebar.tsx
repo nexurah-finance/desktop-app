@@ -50,7 +50,7 @@ const navItems: { label: string; icon: typeof LayoutDashboard; screen: Screen }[
   { label: "Loans", icon: Landmark, screen: "loans" },
   { label: "Collections", icon: Receipt, screen: "collections" },
   { label: "Reports", icon: BarChart3, screen: "reports" },
-  { label: "Notifications", icon: Bell, screen: "notifications" },
+  // { label: "Notifications", icon: Bell, screen: "notifications" },
   { label: "Settings", icon: Settings, screen: "settings" },
 ]
 

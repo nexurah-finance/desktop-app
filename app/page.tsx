@@ -12,7 +12,7 @@ import { CustomerProfileScreen } from "@/components/screens/customer-profile-scr
 import { CollectionsScreen } from "@/components/screens/collections-screen"
 import { PaymentEntryScreen } from "@/components/screens/payment-entry-screen"
 import { ReportsScreen } from "@/components/screens/reports-screen"
-import { NotificationsScreen } from "@/components/screens/notifications-screen"
+// import { NotificationsScreen } from "@/components/screens/notifications-screen"
 import { SettingsScreen } from "@/components/screens/settings-screen"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
@@ -44,8 +44,8 @@ function AppContent() {
         return <PaymentEntryScreen />
       case "reports":
         return <ReportsScreen />
-      case "notifications":
-        return <NotificationsScreen />
+      // case "notifications":
+      //   return <NotificationsScreen />
       case "settings":
         return <SettingsScreen />
       default:

@@ -10,6 +10,9 @@ import {
   AlertTriangle,
   TrendingUp,
 } from "lucide-react"
+import * as XLSX from "xlsx"
+import { jsPDF } from "jspdf"
+import autoTable from "jspdf-autotable"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -108,6 +111,69 @@ export function ReportsScreen() {
     .filter((l) => l.status === "active")
     .reduce((sum, l) => sum + l.amount * (l.interestRate / 100), 0)
 
+  const exportToExcel = () => {
+    // 1. Daily Data
+    const dailyWS = XLSX.utils.json_to_sheet(dailyData)
+    // 2. Monthly Data
+    const monthlyWS = XLSX.utils.json_to_sheet(monthlyData)
+    // 3. Loan Summary
+    const loanWS = XLSX.utils.json_to_sheet(loanSummary.map(l => ({
+      Customer: l.customerName,
+      "Loan Amount": l.loanAmount,
+      "Interest %": l.interestRate,
+      "Monthly Interest": l.monthlyInterest,
+      "Total Paid": l.totalPaid,
+      Status: l.status
+    })))
+
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, dailyWS, "Daily Collection")
+    XLSX.utils.book_append_sheet(wb, monthlyWS, "Monthly Collection")
+    XLSX.utils.book_append_sheet(wb, loanWS, "Loan Summary")
+
+    XLSX.writeFile(wb, `Finance_Report_${new Date().toISOString().split('T')[0]}.xlsx`)
+  }
+
+  const exportToPDF = () => {
+    const doc = new jsPDF()
+    
+    // Title
+    doc.setFontSize(20)
+    doc.text("Finance Summary Report", 14, 22)
+    doc.setFontSize(11)
+    doc.setTextColor(100)
+    doc.text(`Generated on: ${new Date().toLocaleDateString("en-IN")}`, 14, 30)
+
+    // Summary Section
+    doc.setTextColor(0)
+    doc.setFontSize(14)
+    doc.text("Overall Summary", 14, 45)
+    doc.setFontSize(10)
+    doc.text(`Total Collected: Rs. ${totalCollected.toLocaleString("en-IN")}`, 14, 55)
+    doc.text(`Total Active Loans: Rs. ${totalLoanAmount.toLocaleString("en-IN")}`, 14, 62)
+    doc.text(`Total Active Borrowers: ${loans.filter(l => l.status === "active").length}`, 14, 69)
+
+    // Loan Summary Table
+    doc.setFontSize(14)
+    doc.text("Loan Details", 14, 85)
+    
+    autoTable(doc, {
+      startY: 90,
+      head: [['Customer', 'Loan Amount', 'Int %', 'Monthly Int', 'Total Paid', 'Status']],
+      body: loanSummary.map(l => [
+        l.customerName,
+        `Rs. ${l.loanAmount.toLocaleString("en-IN")}`,
+        `${l.interestRate}%`,
+        `Rs. ${l.monthlyInterest.toLocaleString("en-IN")}`,
+        `Rs. ${l.totalPaid.toLocaleString("en-IN")}`,
+        l.status.toUpperCase()
+      ]),
+      headStyles: { fillColor: [50, 50, 200] }
+    })
+
+    doc.save(`Finance_Report_${new Date().toISOString().split('T')[0]}.pdf`)
+  }
+
   return (
     <div className="flex flex-col gap-6 p-6">
       <div className="flex items-center justify-between">
@@ -116,10 +182,10 @@ export function ReportsScreen() {
           <p className="text-sm text-muted-foreground">Detailed financial reports and analytics</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={exportToExcel}>
             <FileSpreadsheet className="mr-2 size-4" /> Export Excel
           </Button>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={exportToPDF}>
             <FileText className="mr-2 size-4" /> Export PDF
           </Button>
         </div>

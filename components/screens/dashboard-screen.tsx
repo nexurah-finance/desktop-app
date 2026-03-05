@@ -99,7 +99,7 @@ export function DashboardScreen() {
       color: "text-chart-4",
       bgColor: "bg-chart-4/10",
     },
-    {
+/*    {
       title: "Overdue Customers",
       value: overdueCount,
       icon: AlertTriangle,
@@ -107,7 +107,7 @@ export function DashboardScreen() {
       trendUp: false,
       color: "text-destructive",
       bgColor: "bg-destructive/10",
-    },
+    }, */
   ]
 
   return (
@@ -282,7 +282,7 @@ export function DashboardScreen() {
           </CardContent>
         </Card>
 
-        <Card className="border border-border">
+{/*         <Card className="border border-border">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Overdue Alerts</CardTitle>
             <CardDescription>Customers needing follow-up</CardDescription>
@@ -322,7 +322,7 @@ export function DashboardScreen() {
               </div>
             )}
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
     </div>
   )

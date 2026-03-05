@@ -59,7 +59,7 @@ export function TopNavbar() {
         </div>
 
         <div className="ml-auto flex items-center gap-2">
-          <Button
+{/*           <Button
             variant="ghost"
             size="icon"
             className="relative h-9 w-9"
@@ -72,7 +72,7 @@ export function TopNavbar() {
               </span>
             )}
             <span className="sr-only">Notifications</span>
-          </Button>
+          </Button> */}
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
