@@ -12,23 +12,42 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { useApp } from "@/lib/store"
 
 export function SettingsScreen() {
-  const { settings, updateSettings, user, changePassword } = useApp()
+  const { settings, updateSettings, user, changePassword, customers, loans, payments } = useApp()
   const [passForm, setPassForm] = useState({ old: "", new: "", confirm: "" })
   const [passLoading, setPassLoading] = useState(false)
   const [passStatus, setPassStatus] = useState<{ type: "success" | "error", msg: string } | null>(null)
 
   // Local state for company settings to avoid saving on every keystroke
-  const [businessName, setBusinessName] = useState(settings.companyName)
+  const [businessName, setBusinessName] = useState(settings.businessName)
   const [interestRate, setInterestRate] = useState(settings.defaultInterestRate)
   const [bizLoading, setBizLoading] = useState(false)
   const [bizStatus, setBizStatus] = useState<{ type: "success" | "error", msg: string } | null>(null)
+
+  const handleExportJSON = () => {
+    const data = {
+      exportDate: new Date().toISOString(),
+      businessName: settings.businessName,
+      customers,
+      loans,
+      payments,
+    }
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = url
+    link.download = `Nexurah_Backup_${new Date().toISOString().split('T')[0]}.json`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
 
   const handleBusinessUpdate = async (e: React.FormEvent) => {
     e.preventDefault()
     setBizLoading(true)
     setBizStatus(null)
     try {
-      await updateSettings({ companyName: businessName, defaultInterestRate: interestRate })
+      await updateSettings({ businessName: businessName, defaultInterestRate: interestRate })
       setBizStatus({ type: "success", msg: "Business identity updated!" })
       setTimeout(() => setBizStatus(null), 3000)
     } catch (err) {
@@ -238,7 +257,7 @@ export function SettingsScreen() {
                     <p className="text-xs text-muted-foreground">Export business data locally</p>
                   </div>
                 </div>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={handleExportJSON}>
                   Export JSON
                 </Button>
               </div>

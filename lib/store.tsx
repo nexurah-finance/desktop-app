@@ -88,9 +88,13 @@ type AppState = {
     businessName: string
     currency: string
     interestModel: "simple" | "monthly"
+    defaultInterestRate: number
+    darkMode: boolean
   }
   updateSettings: (s: Partial<AppState["settings"]>) => Promise<void>
   changePassword: (data: any) => Promise<void>
+  searchQuery: string
+  setSearchQuery: (query: string) => void
   refreshData: () => Promise<void>
 }
 
@@ -113,10 +117,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null)
   const [editingCustomerId, setEditingCustomerId] = useState<string | null>(null)
   const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState("")
   const [settings, setSettings] = useState({
     businessName: "Nexurah",
-    currency: "USD",
+    currency: "INR",
     interestModel: "simple" as "simple" | "monthly",
+    defaultInterestRate: 3,
+    darkMode: false,
   })
 
   // loadDataForUser: called directly after login with the fresh user object.
@@ -242,6 +249,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         payments, addPayment, updatePayment, deletePayment,
         notifications, markNotificationRead,
         settings, updateSettings,
+        searchQuery, setSearchQuery,
         refreshData: async () => {
           if (user) await loadDataForUser(user)
         },

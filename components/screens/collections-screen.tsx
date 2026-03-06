@@ -43,8 +43,17 @@ import {
 import { useApp } from "@/lib/store"
 
 export function CollectionsScreen() {
-  const { payments, customers, loans, setScreen, setSelectedCustomerId, setEditingPaymentId, deletePayment } = useApp()
-  const [search, setSearch] = useState("")
+  const { 
+    payments, 
+    customers, 
+    loans, 
+    setScreen, 
+    setSelectedCustomerId, 
+    setEditingPaymentId, 
+    deletePayment,
+    searchQuery: search,
+    setSearchQuery: setSearch
+  } = useApp()
   const [sortBy, setSortBy] = useState<string>("date-desc")
 
   const filteredAndSorted = useMemo(() => {

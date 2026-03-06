@@ -57,8 +57,9 @@ export function CustomersScreen() {
     setScreen,
     setSelectedCustomerId,
     setEditingCustomerId,
+    searchQuery: search,
+    setSearchQuery: setSearch,
   } = useApp()
-  const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [amountFilter, setAmountFilter] = useState<string>("all")
 

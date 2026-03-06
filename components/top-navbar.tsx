@@ -28,9 +28,17 @@ import { useApp } from "@/lib/store"
 import { Separator } from "@/components/ui/separator"
 
 export function TopNavbar() {
-  const { setScreen, setIsLoggedIn, setUser, notifications, settings, user } = useApp()
+  const { setScreen, setIsLoggedIn, setUser, notifications, settings, user, searchQuery, setSearchQuery } = useApp()
   const [showLogoutDialog, setShowLogoutDialog] = useState(false)
   const unreadCount = notifications.filter((n) => !n.read).length
+  
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value
+    setSearchQuery(val)
+    if (val.trim()) {
+      setScreen("customers") // Default search target
+    }
+  }
 
   const handleLogout = () => {
     setIsLoggedIn(false)
@@ -46,7 +54,7 @@ export function TopNavbar() {
         
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold text-primary uppercase tracking-wider">
-            {settings.companyName}
+            {settings.businessName}
           </span>
         </div>
 
@@ -55,6 +63,8 @@ export function TopNavbar() {
           <Input
             placeholder="Search..."
             className="h-8 pl-9 bg-secondary border-0 text-sm"
+            value={searchQuery}
+            onChange={handleSearch}
           />
         </div>
 

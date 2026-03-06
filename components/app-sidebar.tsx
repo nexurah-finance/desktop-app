@@ -69,7 +69,7 @@ function AppSidebarContent() {
           {open && (
             <div className="flex flex-col leading-tight overflow-hidden transition-all duration-200">
               <span className="text-sm font-bold tracking-tight truncate">
-                {settings.companyName}
+                {settings.businessName}
               </span>
               <span className="text-[10px] opacity-70 uppercase tracking-wider font-medium">
                 Finance Manager

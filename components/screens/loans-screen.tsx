@@ -19,8 +19,15 @@ import {
 import { useApp } from "@/lib/store"
 
 export function LoansScreen() {
-  const { loans, customers, payments, setScreen, setSelectedCustomerId } = useApp()
-  const [search, setSearch] = useState("")
+  const { 
+    loans, 
+    customers, 
+    payments, 
+    setScreen, 
+    setSelectedCustomerId,
+    searchQuery: search,
+    setSearchQuery: setSearch
+  } = useApp()
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [sortBy, setSortBy] = useState<string>("date-desc")
 
