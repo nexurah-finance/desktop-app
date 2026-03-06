@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ArrowLeft, Receipt } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -17,7 +17,7 @@ import {
 import { useApp } from "@/lib/store"
 
 export function PaymentEntryScreen() {
-  const { customers, loans, addPayment, setScreen } = useApp()
+  const { customers, loans, payments, addPayment, updatePayment, setScreen, editingPaymentId, setEditingPaymentId } = useApp()
   const [form, setForm] = useState({
     customerId: "",
     date: new Date().toISOString().split("T")[0],
@@ -25,6 +25,20 @@ export function PaymentEntryScreen() {
     notes: "",
   })
   const [submitted, setSubmitted] = useState(false)
+
+  useEffect(() => {
+    if (editingPaymentId) {
+      const p = payments.find((pay) => pay.id === editingPaymentId)
+      if (p) {
+        setForm({
+          customerId: p.customerId,
+          date: p.date,
+          amount: p.amount.toString(),
+          notes: p.notes,
+        })
+      }
+    }
+  }, [editingPaymentId, payments])
 
   const customerLoan = form.customerId
     ? loans.find((l) => l.customerId === form.customerId && l.status === "active")
@@ -34,14 +48,26 @@ export function PaymentEntryScreen() {
     if (!form.customerId || !form.amount) return
     const loan = loans.find((l) => l.customerId === form.customerId && l.status === "active")
     if (!loan) return
-    addPayment({
-      customerId: form.customerId,
-      loanId: loan.id,
-      date: form.date,
-      amount: parseFloat(form.amount),
-      notes: form.notes,
-    })
+    
+    if (editingPaymentId) {
+      updatePayment(editingPaymentId, {
+        customerId: form.customerId,
+        loanId: loan.id,
+        date: form.date,
+        amount: parseFloat(form.amount),
+        notes: form.notes,
+      })
+    } else {
+      addPayment({
+        customerId: form.customerId,
+        loanId: loan.id,
+        date: form.date,
+        amount: parseFloat(form.amount),
+        notes: form.notes,
+      })
+    }
     setSubmitted(true)
+    setEditingPaymentId(null)
   }
 
   if (submitted) {
@@ -76,13 +102,17 @@ export function PaymentEntryScreen() {
   return (
     <div className="flex flex-col gap-6 p-6">
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => setScreen("collections")}>
+        <Button variant="ghost" size="icon" onClick={() => { setScreen("collections"); setEditingPaymentId(null); }}>
           <ArrowLeft className="size-4" />
           <span className="sr-only">Go back</span>
         </Button>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Record Payment</h1>
-          <p className="text-sm text-muted-foreground">Enter a new payment collection</p>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            {editingPaymentId ? "Edit Payment" : "Record Payment"}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {editingPaymentId ? "Update existing payment details" : "Enter a new payment collection"}
+          </p>
         </div>
       </div>
 
@@ -162,11 +192,11 @@ export function PaymentEntryScreen() {
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-2">
-            <Button variant="outline" onClick={() => setScreen("collections")}>
+            <Button variant="outline" onClick={() => { setScreen("collections"); setEditingPaymentId(null); }}>
               Cancel
             </Button>
             <Button onClick={handleSubmit} disabled={!form.customerId || !form.amount}>
-              Save Payment
+              {editingPaymentId ? "Update Payment" : "Save Payment"}
             </Button>
           </div>
         </CardContent>

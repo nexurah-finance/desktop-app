@@ -53,6 +53,19 @@ export const api = {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(p)
   }).then(r => r.json()),
+  updatePayment: (id: string, p: any, userId?: string) => {
+    const url = userId ? `${API_BASE}/payments/${id}?userId=${userId}` : `${API_BASE}/payments/${id}`;
+    return fetch(url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(p)
+    }).then(r => r.json());
+  },
+  deletePayment: (id: string, userId?: string) => {
+    const url = userId ? `${API_BASE}/payments/${id}?userId=${userId}` : `${API_BASE}/payments/${id}`;
+    return fetch(url, { method: 'DELETE' });
+  },
+
 
   getNotifications: (userId?: string) => {
     const url = userId ? `${API_BASE}/notifications?userId=${userId}` : `${API_BASE}/notifications`;

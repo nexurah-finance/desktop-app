@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { ArrowLeft, Calculator, Plus, Eye } from "lucide-react"
+import { ArrowLeft, Calculator, Plus, Eye, Search, Filter, ArrowUpDown } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -20,6 +20,41 @@ import { useApp } from "@/lib/store"
 
 export function LoansScreen() {
   const { loans, customers, payments, setScreen, setSelectedCustomerId } = useApp()
+  const [search, setSearch] = useState("")
+  const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [sortBy, setSortBy] = useState<string>("date-desc")
+
+  const filteredAndSortedLoans = useMemo(() => {
+    let result = loans.map(loan => ({
+      ...loan,
+      customerName: customers.find(c => c.id === loan.customerId)?.name || "Unknown"
+    }))
+
+    // Filter
+    if (search) {
+      result = result.filter(l => l.customerName.toLowerCase().includes(search.toLowerCase()))
+    }
+    if (statusFilter !== "all") {
+      result = result.filter(l => l.status === statusFilter)
+    }
+
+    // Sort
+    result.sort((a, b) => {
+      switch (sortBy) {
+        case "date-desc": return new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
+        case "date-asc": return new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+        case "amount-desc": return b.amount - a.amount
+        case "amount-asc": return a.amount - b.amount
+        case "rate-desc": return b.interestRate - a.interestRate
+        case "rate-asc": return a.interestRate - b.interestRate
+        case "name-asc": return a.customerName.localeCompare(b.customerName)
+        case "name-desc": return b.customerName.localeCompare(a.customerName)
+        default: return 0
+      }
+    })
+
+    return result
+  }, [loans, customers, search, statusFilter, sortBy])
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -36,7 +71,47 @@ export function LoansScreen() {
       </div>
 
       <Card className="border border-border">
-        <CardContent className="pt-6">
+        <CardHeader className="pb-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search by customer name..."
+                className="pl-9"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-36">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="closed">Closed</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-44">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="date-desc">Date (Newest)</SelectItem>
+                  <SelectItem value="date-asc">Date (Oldest)</SelectItem>
+                  <SelectItem value="amount-desc">Amount (High-Low)</SelectItem>
+                  <SelectItem value="amount-asc">Amount (Low-High)</SelectItem>
+                  <SelectItem value="rate-desc">Interest (High-Low)</SelectItem>
+                  <SelectItem value="rate-asc">Interest (Low-High)</SelectItem>
+                  <SelectItem value="name-asc">Name (A-Z)</SelectItem>
+                  <SelectItem value="name-desc">Name (Z-A)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
@@ -50,12 +125,11 @@ export function LoansScreen() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {loans.map((loan) => {
-                const customer = customers.find((c) => c.id === loan.customerId)
+              {filteredAndSortedLoans.map((loan) => {
                 const monthlyInterest = loan.amount * (loan.interestRate / 100)
                 return (
                   <TableRow key={loan.id}>
-                    <TableCell className="font-medium">{customer?.name || "Unknown"}</TableCell>
+                    <TableCell className="font-medium">{loan.customerName}</TableCell>
                     <TableCell className="text-right font-mono">
                       ₹{loan.amount.toLocaleString("en-IN")}
                     </TableCell>
@@ -99,6 +173,14 @@ export function LoansScreen() {
                   </TableRow>
                 )
               })}
+              {filteredAndSortedLoans.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                    No loans found matching your filters.
+                  </TableCell>
+                </TableRow>
+              )}
+
             </TableBody>
           </Table>
         </CardContent>

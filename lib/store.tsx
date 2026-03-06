@@ -70,12 +70,16 @@ type AppState = {
   addLoan: (l: Omit<Loan, "id" | "status">) => Promise<void>
   payments: Payment[]
   addPayment: (p: Omit<Payment, "id">) => Promise<void>
+  updatePayment: (id: string, p: Partial<Payment>) => Promise<void>
+  deletePayment: (id: string) => Promise<void>
   notifications: Notification[]
   markNotificationRead: (id: string) => Promise<void>
   selectedCustomerId: string | null
   setSelectedCustomerId: (id: string | null) => void
   editingCustomerId: string | null
   setEditingCustomerId: (id: string | null) => void
+  editingPaymentId: string | null
+  setEditingPaymentId: (id: string | null) => void
   settings: {
     companyName: string
     defaultInterestRate: number
@@ -103,6 +107,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null)
   const [editingCustomerId, setEditingCustomerId] = useState<string | null>(null)
+  const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null)
   const [settings, setSettings] = useState({
     companyName: "Nexurah",
     defaultInterestRate: 3,
@@ -175,6 +180,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setPayments((prev) => [newPayment, ...prev])
   }, [user])
 
+  const updatePayment = useCallback(async (id: string, p: Partial<Payment>) => {
+    if (!user) return
+    const updated = await api.updatePayment(id, p, user.id)
+    setPayments((prev) => prev.map((pay) => (pay.id === id ? { ...pay, ...updated } : pay)))
+  }, [user])
+
+  const deletePayment = useCallback(async (id: string) => {
+    if (!user) return
+    await api.deletePayment(id, user.id)
+    setPayments((prev) => prev.filter((p) => p.id !== id))
+  }, [user])
+
   const markNotificationRead = useCallback(async (id: string) => {
     await api.markNotificationRead(id)
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)))
@@ -193,11 +210,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         user, setUser, loadDataForUser,
         customers, addCustomer, updateCustomer, deleteCustomer,
         loans, addLoan,
-        payments, addPayment,
-        notifications, markNotificationRead,
         selectedCustomerId, setSelectedCustomerId,
         editingCustomerId, setEditingCustomerId,
+        editingPaymentId, setEditingPaymentId,
+        payments, addPayment, updatePayment, deletePayment,
+        notifications, markNotificationRead,
         settings, updateSettings,
+
         changePassword,
       }}
     >
