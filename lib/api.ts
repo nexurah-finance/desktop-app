@@ -43,6 +43,12 @@ export const api = {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(l)
   }).then(r => r.json()),
+  deleteLoan: (id: string, userId?: string) => {
+    const url = userId ? `${API_BASE}/loans/${id}?userId=${userId}` : `${API_BASE}/loans/${id}`;
+    return fetch(url, { method: 'DELETE' }).then(r => {
+      if (!r.ok) throw new Error('Failed to delete loan')
+    });
+  },
   closeLoan: (id: string, data: any, userId?: string) => {
     const url = userId ? `${API_BASE}/loans/${id}/close?userId=${userId}` : `${API_BASE}/loans/${id}/close`;
     return fetch(url, {

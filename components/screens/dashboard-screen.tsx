@@ -1,4 +1,6 @@
 "use client"
+import { useState, useMemo } from "react"
+import { Button } from "@/components/ui/button"
 
 import {
   Users,
@@ -39,28 +41,62 @@ const monthlyCollectionData = [
 ]
 
 export function DashboardScreen() {
-  const { customers, loans, payments, notifications, setScreen, setSelectedCustomerId } = useApp()
+  const { customers, loans, payments, notifications, setScreen, setSelectedCustomerId, refreshData } = useApp()
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
+  const activeLoansList = loans.filter((l) => l.status === "active")
   const totalCustomers = customers.length
-  const activeLoans = loans.filter((l) => l.status === "active").length
+  const activeLoans = activeLoansList.length
   const totalCollected = payments.reduce((sum, p) => sum + p.amount, 0)
+  
+  // Calculate true monthly collection (current month)
+  const now = new Date()
+  const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  const lastMonthStr = `${now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear()}-${String(now.getMonth() === 0 ? 12 : now.getMonth()).padStart(2, '0')}`
+  
   const monthlyCollection = payments
-    .filter((p) => p.date.startsWith("2026-01") || p.date.startsWith("2025-12"))
+    .filter((p) => p.date.startsWith(currentMonthStr))
     .reduce((sum, p) => sum + p.amount, 0)
-  const totalLoanAmount = loans.filter((l) => l.status === "active").reduce((sum, l) => sum + l.amount, 0)
+    
+  const lastMonthCollection = payments
+    .filter((p) => p.date.startsWith(lastMonthStr))
+    .reduce((sum, p) => sum + p.amount, 0)
+
+  const totalLoanAmount = activeLoansList.reduce((sum, l) => sum + l.amount, 0)
   const closedLoansCount = loans.filter((l) => l.status === "closed").length
-  const overdueCount = notifications.filter((n) => n.type === "overdue" && !n.read).length
+
+  // Generate real chart data (last 7 months)
+  const last7MonthsData = useMemo(() => {
+    const data = []
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date()
+      d.setMonth(d.getMonth() - i)
+      const mStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      const mLabel = d.toLocaleDateString("en-IN", { month: "short" })
+      const amount = payments
+        .filter(p => p.date.startsWith(mStr))
+        .reduce((sum, p) => sum + p.amount, 0)
+      data.push({ month: mLabel, amount })
+    }
+    return data
+  }, [payments])
 
   const recentPayments = [...payments]
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 6)
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    await refreshData()
+    setIsRefreshing(false)
+  }
 
   const statCards = [
     {
       title: "Total Customers",
       value: totalCustomers,
       icon: Users,
-      trend: "+2 this month",
+      trend: `${customers.filter(c => c.createdAt?.startsWith(currentMonthStr)).length} new this month`,
       trendUp: true,
       color: "text-primary",
       bgColor: "bg-primary/10",
@@ -69,23 +105,23 @@ export function DashboardScreen() {
       title: "Active Loans",
       value: activeLoans,
       icon: Landmark,
-      trend: "+1 this month",
+      trend: `₹${totalLoanAmount.toLocaleString("en-IN")} out`,
       trendUp: true,
       color: "text-chart-2",
       bgColor: "bg-chart-2/10",
     },
     {
-      title: "Total Collected",
-      value: `₹${totalCollected.toLocaleString("en-IN")}`,
-      icon: IndianRupee,
-      trend: "+12% vs last month",
-      trendUp: true,
+      title: "Monthly Collect",
+      value: `₹${monthlyCollection.toLocaleString("en-IN")}`,
+      icon: CalendarCheck,
+      trend: monthlyCollection >= lastMonthCollection ? "Increased" : "Decreased",
+      trendUp: monthlyCollection >= lastMonthCollection,
       color: "text-chart-2",
       bgColor: "bg-chart-2/10",
     },
     {
-      title: "Pending Amount",
-      value: `₹${(totalLoanAmount - totalCollected).toLocaleString("en-IN")}`,
+      title: "Active Principal",
+      value: `₹${totalLoanAmount.toLocaleString("en-IN")}`,
       icon: Clock,
       trend: `${activeLoans} active loans`,
       trendUp: false,
@@ -105,9 +141,20 @@ export function DashboardScreen() {
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Dashboard</h1>
-        <p className="text-sm text-muted-foreground">Welcome back, here{"'"}s your financial overview.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Dashboard</h1>
+          <p className="text-sm text-muted-foreground">Welcome back, here{"'"}s your financial overview.</p>
+        </div>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+        >
+          <TrendingUp className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+          {isRefreshing ? "Syncing..." : "Sync DB"}
+        </Button>
       </div>
 
       {/* Stat Cards */}

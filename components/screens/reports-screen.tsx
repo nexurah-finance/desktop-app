@@ -41,7 +41,7 @@ import {
 import { useApp } from "@/lib/store"
 
 export function ReportsScreen() {
-  const { payments, loans, customers } = useApp()
+  const { payments, loans, customers, refreshData } = useApp()
   const [tab, setTab] = useState("daily")
 
   // Group payments by date
@@ -182,6 +182,18 @@ export function ReportsScreen() {
           <p className="text-sm text-muted-foreground">Detailed financial reports and analytics</p>
         </div>
         <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={async () => {
+              const b = document.getElementById('sync-btn-icon')
+              b?.classList.add('animate-spin')
+              await refreshData()
+              b?.classList.remove('animate-spin')
+            }}
+          >
+            <TrendingUp id="sync-btn-icon" className="mr-2 size-4" /> Sync DB
+          </Button>
           <Button variant="outline" size="sm" onClick={exportToExcel}>
             <FileSpreadsheet className="mr-2 size-4" /> Export Excel
           </Button>

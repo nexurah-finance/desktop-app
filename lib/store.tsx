@@ -69,10 +69,11 @@ type AppState = {
   updateCustomer: (id: string, c: Partial<Customer>) => Promise<void>
   deleteCustomer: (id: string) => Promise<void>
   loans: Loan[]
-  addLoan: (l: Omit<Loan, "id" | "status">) => Promise<void>
-  closeLoan: (id: string, data: { paymentAmount: number, paymentDate: string, notes: string }) => Promise<void>
+  addLoan: (l: Omit<Loan, "id" | "status">) => Promise<Loan>
+  closeLoan: (id: string, data: { paymentAmount: number, paymentDate: string, notes: string }) => Promise<{ loan: Loan, payment: Payment }>
+  deleteLoan: (id: string) => Promise<void>
   payments: Payment[]
-  addPayment: (p: Omit<Payment, "id">) => Promise<void>
+  addPayment: (p: Omit<Payment, "id">) => Promise<Payment>
   updatePayment: (id: string, p: Partial<Payment>) => Promise<void>
   deletePayment: (id: string) => Promise<void>
   notifications: Notification[]
@@ -84,12 +85,13 @@ type AppState = {
   editingPaymentId: string | null
   setEditingPaymentId: (id: string | null) => void
   settings: {
-    companyName: string
-    defaultInterestRate: number
-    darkMode: boolean
+    businessName: string
+    currency: string
+    interestModel: "simple" | "monthly"
   }
   updateSettings: (s: Partial<AppState["settings"]>) => Promise<void>
   changePassword: (data: any) => Promise<void>
+  refreshData: () => Promise<void>
 }
 
 const AppContext = createContext<AppState | null>(null)
@@ -112,30 +114,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [editingCustomerId, setEditingCustomerId] = useState<string | null>(null)
   const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null)
   const [settings, setSettings] = useState({
-    companyName: "Nexurah",
-    defaultInterestRate: 3,
-    darkMode: false,
+    businessName: "Nexurah",
+    currency: "USD",
+    interestModel: "simple" as "simple" | "monthly",
   })
 
   // loadDataForUser: called directly after login with the fresh user object.
   // This avoids the React stale-closure bug where refreshData sees user=null
   // because state updates are batched and the callback hasn't been recreated yet.
-  const loadDataForUser = useCallback(async (loggedInUser: AppState["user"]) => {
-    if (!loggedInUser) return
+  const loadDataForUser = useCallback(async (userData: AppState["user"] | string) => {
+    const userId = typeof userData === 'string' ? userData : userData?.id
+    if (!userId) return
     try {
-      const scopedId = loggedInUser.id
       const [c, l, p, n, s] = await Promise.all([
-        api.getCustomers(scopedId),
-        api.getLoans(scopedId),
-        api.getPayments(scopedId),
-        api.getNotifications(scopedId),
+        api.getCustomers(userId),
+        api.getLoans(userId),
+        api.getPayments(userId),
+        api.getNotifications(userId),
         api.getSettings(),
       ])
       setCustomers(c)
       setLoans(l)
       setPayments(p)
       setNotifications(n)
-      if (s.companyName) {
+      if (s.businessName) { // Changed from companyName to businessName
         setSettings(prev => ({ ...prev, ...s }))
       }
     } catch (error) {
@@ -169,26 +171,39 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!user) return
     await api.deleteCustomer(id, user.id)
     setCustomers((prev) => prev.filter((c) => c.id !== id))
+    // Sync local state for cascading effect
+    setLoans((prev) => prev.filter((l) => l.customerId !== id))
+    setPayments((prev) => prev.filter((p) => p.customerId !== id))
   }, [user])
 
   const addLoan = useCallback(async (l: Omit<Loan, "id" | "status">) => {
-    if (!user) return
+    if (!user) throw new Error("Unauthorized")
     const newLoan = await api.addLoan({ ...l, userId: user.id })
     setLoans((prev) => [...prev, newLoan])
+    return newLoan
+  }, [user])
+
+  const deleteLoan = useCallback(async (id: string) => {
+    if (!user) return
+    await api.deleteLoan(id, user.id)
+    setLoans((prev) => prev.filter((l) => l.id !== id))
+    setPayments((prev) => prev.filter((p) => p.loanId !== id))
   }, [user])
 
   const closeLoan = useCallback(async (id: string, data: { paymentAmount: number, paymentDate: string, notes: string }) => {
-    if (!user) return
+    if (!user) throw new Error("Unauthorized")
     const result = await api.closeLoan(id, { ...data, userId: user.id }, user.id)
     // Refresh both loans and payments to ensure consistency
     setLoans((prev) => prev.map((l) => (l.id === id ? result.loan : l)))
     setPayments((prev) => [result.payment, ...prev])
+    return result
   }, [user])
 
   const addPayment = useCallback(async (p: Omit<Payment, "id">) => {
-    if (!user) return
+    if (!user) throw new Error("Unauthorized")
     const newPayment = await api.addPayment({ ...p, userId: user.id })
     setPayments((prev) => [newPayment, ...prev])
+    return newPayment
   }, [user])
 
   const updatePayment = useCallback(async (id: string, p: Partial<Payment>) => {
@@ -220,13 +235,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
         isLoggedIn, setIsLoggedIn,
         user, setUser, loadDataForUser,
         customers, addCustomer, updateCustomer, deleteCustomer,
-        loans, addLoan, closeLoan,
+        loans, addLoan, closeLoan, deleteLoan,
         selectedCustomerId, setSelectedCustomerId,
         editingCustomerId, setEditingCustomerId,
         editingPaymentId, setEditingPaymentId,
         payments, addPayment, updatePayment, deletePayment,
         notifications, markNotificationRead,
         settings, updateSettings,
+        refreshData: async () => {
+          if (user) await loadDataForUser(user)
+        },
 
         changePassword,
       }}
