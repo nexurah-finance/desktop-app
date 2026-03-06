@@ -26,6 +26,12 @@ export function PaymentEntryScreen() {
   })
   const [submitted, setSubmitted] = useState(false)
 
+  const customerLoan = form.customerId
+    ? loans.find((l) => l.customerId === form.customerId && l.status === "active")
+    : null
+
+  const [lastPaymentDate, setLastPaymentDate] = useState<string | null>(null)
+
   useEffect(() => {
     if (editingPaymentId) {
       const p = payments.find((pay) => pay.id === editingPaymentId)
@@ -37,12 +43,34 @@ export function PaymentEntryScreen() {
           notes: p.notes,
         })
       }
+      return
     }
-  }, [editingPaymentId, payments])
 
-  const customerLoan = form.customerId
-    ? loans.find((l) => l.customerId === form.customerId && l.status === "active")
-    : null
+    if (customerLoan) {
+      const loanPayments = payments
+        .filter(p => p.loanId === customerLoan.id)
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      
+      const lastDate = loanPayments.length > 0 ? loanPayments[0].date : null
+      setLastPaymentDate(lastDate)
+
+      // Only auto-fill if the customer just changed or form is essentially empty
+      if (!form.amount || form.customerId !== customerLoan.customerId) {
+        let nextDate = new Date(customerLoan.startDate + 'T00:00:00') // Use T00:00:00 for stable local date
+        if (lastDate) {
+          nextDate = new Date(lastDate + 'T00:00:00')
+        }
+        
+        nextDate.setMonth(nextDate.getMonth() + 1)
+        
+        setForm(prev => ({
+          ...prev,
+          date: nextDate.toISOString().split("T")[0],
+          amount: (customerLoan.amount * (customerLoan.interestRate / 100)).toString()
+        }))
+      }
+    }
+  }, [editingPaymentId, payments, customerLoan])
 
   const handleSubmit = () => {
     if (!form.customerId || !form.amount) return
@@ -55,6 +83,7 @@ export function PaymentEntryScreen() {
         loanId: loan.id,
         date: form.date,
         amount: parseFloat(form.amount),
+        type: "interest",
         notes: form.notes,
       })
     } else {
@@ -63,6 +92,7 @@ export function PaymentEntryScreen() {
         loanId: loan.id,
         date: form.date,
         amount: parseFloat(form.amount),
+        type: "interest",
         notes: form.notes,
       })
     }
@@ -151,6 +181,16 @@ export function PaymentEntryScreen() {
                 <span className="text-muted-foreground">Monthly Interest Due</span>
                 <span className="font-mono font-semibold text-foreground">
                   ₹{(customerLoan.amount * (customerLoan.interestRate / 100)).toLocaleString("en-IN")}
+                </span>
+              </div>
+              <div className="mt-1 text-[10px] text-muted-foreground flex justify-between">
+                <span>{lastPaymentDate ? "Last paid: " + new Date(lastPaymentDate + 'T00:00:00').toLocaleDateString("en-IN", { day: '2-digit', month: 'short', year: 'numeric' }) : "No previous payments"}</span>
+                <span className="font-medium text-chart-2">
+                  Next due: {(() => {
+                    let d = new Date((lastPaymentDate || customerLoan.startDate) + 'T00:00:00')
+                    d.setMonth(d.getMonth() + 1)
+                    return d.toLocaleDateString("en-IN", { day: '2-digit', month: 'short', year: 'numeric' })
+                  })()}
                 </span>
               </div>
             </div>

@@ -91,6 +91,7 @@ export function LoansScreen() {
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="closed">Closed</SelectItem>
+                  <SelectItem value="overdue">Overdue</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={sortBy} onValueChange={setSortBy}>
@@ -345,6 +346,10 @@ export function AddLoanScreen() {
                     ₹{monthlyInterest.toLocaleString("en-IN")}
                   </span>
                 </div>
+              </div>
+              <div className="mt-2 text-[11px] text-muted-foreground bg-primary/5 p-2 rounded border border-primary/10">
+                Rule: First payment is exactly 1 month after start date. 
+                Example: If started on 03 June, first interest is due on 03 July.
               </div>
             </div>
           </CardContent>

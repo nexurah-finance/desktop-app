@@ -22,6 +22,12 @@ export function AddCustomerScreen() {
     notes: "",
   })
 
+  const [errors, setErrors] = useState({
+    name: "",
+    phone: "",
+    idProof: "",
+  })
+
   useEffect(() => {
     if (existingCustomer) {
       setForm({
@@ -34,8 +40,39 @@ export function AddCustomerScreen() {
     }
   }, [existingCustomer])
 
+  const validate = () => {
+    let isValid = true
+    const newErrors = { name: "", phone: "", idProof: "" }
+
+    // Name validation: No special characters
+    if (!form.name.trim()) {
+      newErrors.name = "Name is required"
+      isValid = false
+    } else if (!/^[a-zA-Z\s]+$/.test(form.name)) {
+      newErrors.name = "Name should not contain special characters"
+      isValid = false
+    }
+
+    // Phone validation: 10 digits
+    if (!/^\d{10}$/.test(form.phone)) {
+      newErrors.phone = "Phone number must be exactly 10 digits"
+      isValid = false
+    }
+
+    // Aadhaar validation: 12 digits (if provided)
+    const rawIdProof = form.idProof.replace(/\s/g, "")
+    if (rawIdProof && !/^\d{12}$/.test(rawIdProof)) {
+      newErrors.idProof = "Aadhaar number must be exactly 12 digits"
+      isValid = false
+    }
+
+    setErrors(newErrors)
+    return isValid
+  }
+
   const handleSubmit = () => {
-    if (!form.name || !form.phone) return
+    if (!validate()) return
+
     if (isEditing && editingCustomerId) {
       updateCustomer(editingCustomerId, form)
       setEditingCustomerId(null)
@@ -77,26 +114,44 @@ export function AddCustomerScreen() {
         <CardContent className="flex flex-col gap-5">
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="name">
+              <Label htmlFor="name" className={errors.name ? "text-destructive" : ""}>
                 Full Name <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="name"
                 placeholder="Enter full name"
+                className={errors.name ? "border-destructive focus-visible:ring-destructive" : ""}
                 value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                onChange={(e) => {
+                  const val = e.target.value
+                  // Basic sanitization: stop user from typing special characters
+                  if (val === "" || /^[a-zA-Z\s]*$/.test(val)) {
+                    setForm({ ...form, name: val })
+                    if (errors.name) setErrors({ ...errors, name: "" })
+                  }
+                }}
               />
+              {errors.name && <p className="text-[11px] font-medium text-destructive">{errors.name}</p>}
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="phone">
+              <Label htmlFor="phone" className={errors.phone ? "text-destructive" : ""}>
                 Phone Number <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="phone"
-                placeholder="Enter phone number"
+                placeholder="00000 00000"
+                maxLength={10}
+                className={errors.phone ? "border-destructive focus-visible:ring-destructive" : ""}
                 value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, "")
+                  if (val.length <= 10) {
+                    setForm({ ...form, phone: val })
+                    if (errors.phone) setErrors({ ...errors, phone: "" })
+                  }
+                }}
               />
+              {errors.phone && <p className="text-[11px] font-medium text-destructive">{errors.phone}</p>}
             </div>
           </div>
           <div className="flex flex-col gap-2">
@@ -110,13 +165,24 @@ export function AddCustomerScreen() {
             />
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="idProof">ID Proof</Label>
+            <Label htmlFor="idProof" className={errors.idProof ? "text-destructive" : ""}>ID Proof (Aadhaar)</Label>
             <Input
               id="idProof"
-              placeholder="e.g., Aadhar - 1234 XXXX 5678"
+              placeholder="0000 0000 0000"
+              maxLength={14}
+              className={errors.idProof ? "border-destructive focus-visible:ring-destructive" : ""}
               value={form.idProof}
-              onChange={(e) => setForm({ ...form, idProof: e.target.value })}
+              onChange={(e) => {
+                const raw = e.target.value.replace(/\D/g, "")
+                if (raw.length <= 12) {
+                  // Format as XXXX XXXX XXXX
+                  const formatted = raw.match(/.{1,4}/g)?.join(" ") || ""
+                  setForm({ ...form, idProof: formatted })
+                  if (errors.idProof) setErrors({ ...errors, idProof: "" })
+                }
+              }}
             />
+            {errors.idProof && <p className="text-[11px] font-medium text-destructive">{errors.idProof}</p>}
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="notes">Notes</Label>

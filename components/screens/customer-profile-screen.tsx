@@ -17,9 +17,28 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { useApp } from "@/lib/store"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { useState } from "react"
 
 export function CustomerProfileScreen() {
-  const { customers, loans, payments, selectedCustomerId, setScreen } = useApp()
+  const { customers, loans, payments, selectedCustomerId, setScreen, closeLoan } = useApp()
+  const [isClosing, setIsClosing] = useState(false)
+  const [closureForm, setClosureForm] = useState({
+    paymentAmount: 0,
+    paymentDate: new Date().toISOString().split("T")[0],
+    notes: "Full Settlement",
+  })
 
   const customer = customers.find((c) => c.id === selectedCustomerId)
   if (!customer) {
@@ -43,40 +62,52 @@ export function CustomerProfileScreen() {
 
   // Generate timeline entries
   const generateTimeline = () => {
-    if (!activeLoan) return []
-    const start = new Date(activeLoan.startDate)
+    const currentLoan = activeLoan || [...customerLoans].sort((a,b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())[0]
+    if (!currentLoan) return []
+    
     const now = new Date()
     const entries = []
+    const currentMonthlyInterest = currentLoan.amount * (currentLoan.interestRate / 100)
 
-    for (let i = 1; i <= 12; i++) {
-      const dueDate = new Date(start)
+    const limitDate = currentLoan.status === 'closed' && currentLoan.closedDate 
+      ? new Date(currentLoan.closedDate + 'T00:00:00')
+      : new Date(now.getFullYear(), now.getMonth() + 5, 1)
+
+    for (let i = 1; i <= 100; i++) {
+      const dueDate = new Date(currentLoan.startDate + 'T00:00:00')
       dueDate.setMonth(dueDate.getMonth() + i)
-      if (dueDate > new Date(now.getFullYear(), now.getMonth() + 2, 0)) break
-
-      const dateStr = dueDate.toISOString().split("T")[0]
+      
       const monthPayments = customerPayments.filter((p) => {
-        const pDate = new Date(p.date)
+        if (p.loanId !== currentLoan.id) return false
+        const pDate = new Date(p.date + 'T00:00:00')
         return (
           pDate.getMonth() === dueDate.getMonth() &&
           pDate.getFullYear() === dueDate.getFullYear()
         )
       })
+
       const paidAmount = monthPayments.reduce((sum, p) => sum + p.amount, 0)
-      const isPaid = paidAmount >= monthlyInterest
-      const isPending = dueDate <= now && !isPaid
+      const isClosure = monthPayments.some(p => p.type === 'closure')
+      const isPaid = paidAmount >= currentMonthlyInterest || isClosure
+
+      if (dueDate > limitDate && !isPaid) break
 
       entries.push({
         date: dueDate,
-        dateStr,
-        amount: isPaid ? paidAmount : monthlyInterest,
-        status: isPaid ? "paid" : isPending ? "overdue" : "pending",
+        amount: isPaid ? paidAmount : currentMonthlyInterest,
+        status: isPaid ? "paid" : (dueDate <= now ? "overdue" : "pending"),
+        type: isClosure ? 'closure' : 'interest'
       })
+      
+      if (isClosure) break
     }
 
     return entries
   }
 
   const timeline = generateTimeline()
+  const displayLoan = activeLoan || [...customerLoans].sort((a,b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())[0]
+  const displayMonthlyInterest = displayLoan ? displayLoan.amount * (displayLoan.interestRate / 100) : 0
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -89,9 +120,92 @@ export function CustomerProfileScreen() {
           <h1 className="text-2xl font-bold tracking-tight text-foreground">{customer.name}</h1>
           <p className="text-sm text-muted-foreground">Customer profile and loan details</p>
         </div>
-        <Button onClick={() => setScreen("payment-entry")}>
-          <Plus className="mr-2 size-4" /> Add Payment
-        </Button>
+        <div className="flex items-center gap-2">
+          {activeLoan && activeLoan.status === "active" && (
+            <Dialog open={isClosing} onOpenChange={(open) => {
+              if (open) {
+                setClosureForm({
+                  paymentAmount: activeLoan.amount + displayMonthlyInterest,
+                  paymentDate: new Date().toISOString().split("T")[0],
+                  notes: "Full Settlement",
+                })
+              }
+              setIsClosing(open)
+            }}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="border-destructive text-destructive hover:bg-destructive/10">
+                  Close Loan
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Loan Settlement</DialogTitle>
+                  <DialogDescription>
+                    Finalize the loan by recording the principal and final interest.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="rounded-lg bg-muted p-3 text-sm">
+                    <div className="flex justify-between mb-1">
+                      <span>Principal Amount</span>
+                      <span className="font-mono font-semibold">₹{activeLoan.amount.toLocaleString("en-IN")}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Monthly Interest Due</span>
+                      <span className="font-mono font-semibold">₹{displayMonthlyInterest.toLocaleString("en-IN")}</span>
+                    </div>
+                    <Separator className="my-2" />
+                    <div className="flex justify-between font-bold text-primary">
+                      <span>Total Settlement</span>
+                      <span className="font-mono">₹{(activeLoan.amount + displayMonthlyInterest).toLocaleString("en-IN")}</span>
+                    </div>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="closeAmount">Final Payment Amount</Label>
+                    <Input
+                      id="closeAmount"
+                      type="number"
+                      value={closureForm.paymentAmount}
+                      onChange={(e) => setClosureForm({ ...closureForm, paymentAmount: parseFloat(e.target.value) })}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="closeDate">Payment Date</Label>
+                    <Input
+                      id="closeDate"
+                      type="date"
+                      value={closureForm.paymentDate}
+                      onChange={(e) => setClosureForm({ ...closureForm, paymentDate: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="closeNotes">Notes</Label>
+                    <Textarea
+                      id="closeNotes"
+                      value={closureForm.notes}
+                      onChange={(e) => setClosureForm({ ...closureForm, notes: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsClosing(false)}>Cancel</Button>
+                  <Button variant="destructive" onClick={async () => {
+                    await closeLoan(activeLoan.id, closureForm)
+                    setIsClosing(true)
+                    // We don't need to manually set screen, store update handles it
+                    setIsClosing(false)
+                  }}>Confirm Closure</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
+          <Button 
+            onClick={() => setScreen("payment-entry")}
+            disabled={displayLoan?.status === "closed"}
+          >
+            <Plus className="mr-2 size-4" /> Add Payment
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -148,29 +262,34 @@ export function CustomerProfileScreen() {
 
         {/* Loan Summary */}
         <Card className="border border-border">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-base">Loan Summary</CardTitle>
+            {displayLoan && (
+              <Badge variant={displayLoan.status === "closed" ? "secondary" : "default"} className={displayLoan.status === "active" ? "bg-chart-2 text-white" : ""}>
+                {displayLoan.status.toUpperCase()}
+              </Badge>
+            )}
           </CardHeader>
           <CardContent>
-            {activeLoan ? (
+            {displayLoan ? (
               <div className="flex flex-col gap-4">
                 <div className="rounded-lg bg-secondary p-4">
                   <div className="flex flex-col gap-3">
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">Loan Amount</span>
                       <span className="font-mono font-bold text-foreground">
-                        ₹{activeLoan.amount.toLocaleString("en-IN")}
+                        ₹{displayLoan.amount.toLocaleString("en-IN")}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">Interest Rate</span>
-                      <span className="font-mono font-semibold text-foreground">{activeLoan.interestRate}%</span>
+                      <span className="font-mono font-semibold text-foreground">{displayLoan.interestRate}%</span>
                     </div>
                     <Separator />
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-foreground">Monthly Interest</span>
                       <span className="text-lg font-bold text-primary font-mono">
-                        ₹{monthlyInterest.toLocaleString("en-IN")}
+                        ₹{displayMonthlyInterest.toLocaleString("en-IN")}
                       </span>
                     </div>
                   </div>
@@ -179,7 +298,7 @@ export function CustomerProfileScreen() {
                   <CalendarDays className="size-4 text-muted-foreground" />
                   <span className="text-muted-foreground">
                     Started{" "}
-                    {new Date(activeLoan.startDate).toLocaleDateString("en-IN", {
+                    {new Date(displayLoan.startDate + 'T00:00:00').toLocaleDateString("en-IN", {
                       day: "2-digit",
                       month: "long",
                       year: "numeric",
@@ -192,8 +311,14 @@ export function CustomerProfileScreen() {
                     Total Paid: ₹{totalPaid.toLocaleString("en-IN")}
                   </span>
                 </div>
-                {activeLoan.notes && (
-                  <p className="text-xs text-muted-foreground italic">{activeLoan.notes}</p>
+                {displayLoan.status === "closed" && displayLoan.closedDate && (
+                  <div className="flex items-center gap-2 text-sm text-chart-2 font-medium">
+                    <Check className="size-4" />
+                    <span>Closed on {new Date(displayLoan.closedDate + 'T00:00:00').toLocaleDateString("en-IN", { day: '2-digit', month: 'long', year: 'numeric' })}</span>
+                  </div>
+                )}
+                {displayLoan.notes && (
+                  <p className="text-xs text-muted-foreground italic">{displayLoan.notes}</p>
                 )}
               </div>
             ) : (
@@ -250,9 +375,14 @@ export function CustomerProfileScreen() {
                             year: "numeric",
                           })}
                         </p>
-                        <p className="font-mono text-xs text-muted-foreground">
-                          ₹{entry.amount.toLocaleString("en-IN")}
-                        </p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-mono text-xs text-muted-foreground">
+                            ₹{entry.amount.toLocaleString("en-IN")}
+                          </p>
+                          {entry.type === "closure" && (
+                            <Badge variant="outline" className="text-[9px] h-4 px-1 uppercase border-chart-2 bg-chart-2/5 text-chart-2">Closure</Badge>
+                          )}
+                        </div>
                       </div>
                       <Badge
                         variant="outline"
@@ -265,7 +395,7 @@ export function CustomerProfileScreen() {
                         }
                       >
                         {entry.status === "paid"
-                          ? "Paid"
+                          ? (entry.type === 'closure' ? "Loan Closed" : "Paid")
                           : entry.status === "overdue"
                           ? "Overdue"
                           : "Pending"}

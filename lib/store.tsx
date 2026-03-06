@@ -18,7 +18,8 @@ export type Loan = {
   interestRate: number
   startDate: string
   notes: string
-  status: "active" | "closed"
+  status: "active" | "closed" | "overdue"
+  closedDate?: string
 }
 
 export type Payment = {
@@ -28,6 +29,7 @@ export type Payment = {
   date: string
   amount: number
   notes: string
+  type: "interest" | "closure"
 }
 
 export type Notification = {
@@ -68,6 +70,7 @@ type AppState = {
   deleteCustomer: (id: string) => Promise<void>
   loans: Loan[]
   addLoan: (l: Omit<Loan, "id" | "status">) => Promise<void>
+  closeLoan: (id: string, data: { paymentAmount: number, paymentDate: string, notes: string }) => Promise<void>
   payments: Payment[]
   addPayment: (p: Omit<Payment, "id">) => Promise<void>
   updatePayment: (id: string, p: Partial<Payment>) => Promise<void>
@@ -174,6 +177,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setLoans((prev) => [...prev, newLoan])
   }, [user])
 
+  const closeLoan = useCallback(async (id: string, data: { paymentAmount: number, paymentDate: string, notes: string }) => {
+    if (!user) return
+    const result = await api.closeLoan(id, { ...data, userId: user.id }, user.id)
+    // Refresh both loans and payments to ensure consistency
+    setLoans((prev) => prev.map((l) => (l.id === id ? result.loan : l)))
+    setPayments((prev) => [result.payment, ...prev])
+  }, [user])
+
   const addPayment = useCallback(async (p: Omit<Payment, "id">) => {
     if (!user) return
     const newPayment = await api.addPayment({ ...p, userId: user.id })
@@ -209,7 +220,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         isLoggedIn, setIsLoggedIn,
         user, setUser, loadDataForUser,
         customers, addCustomer, updateCustomer, deleteCustomer,
-        loans, addLoan,
+        loans, addLoan, closeLoan,
         selectedCustomerId, setSelectedCustomerId,
         editingCustomerId, setEditingCustomerId,
         editingPaymentId, setEditingPaymentId,

@@ -10,6 +10,7 @@ import {
   TrendingUp,
   ArrowUpRight,
   ArrowDownRight,
+  CheckCircle2,
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -47,6 +48,7 @@ export function DashboardScreen() {
     .filter((p) => p.date.startsWith("2026-01") || p.date.startsWith("2025-12"))
     .reduce((sum, p) => sum + p.amount, 0)
   const totalLoanAmount = loans.filter((l) => l.status === "active").reduce((sum, l) => sum + l.amount, 0)
+  const closedLoansCount = loans.filter((l) => l.status === "closed").length
   const overdueCount = notifications.filter((n) => n.type === "overdue" && !n.read).length
 
   const recentPayments = [...payments]
@@ -82,15 +84,6 @@ export function DashboardScreen() {
       bgColor: "bg-chart-2/10",
     },
     {
-      title: "Monthly Collection",
-      value: `₹${monthlyCollection.toLocaleString("en-IN")}`,
-      icon: CalendarCheck,
-      trend: "Current cycle",
-      trendUp: true,
-      color: "text-chart-1",
-      bgColor: "bg-chart-1/10",
-    },
-    {
       title: "Pending Amount",
       value: `₹${(totalLoanAmount - totalCollected).toLocaleString("en-IN")}`,
       icon: Clock,
@@ -99,15 +92,15 @@ export function DashboardScreen() {
       color: "text-chart-4",
       bgColor: "bg-chart-4/10",
     },
-/*    {
-      title: "Overdue Customers",
-      value: overdueCount,
-      icon: AlertTriangle,
-      trend: "Needs attention",
-      trendUp: false,
-      color: "text-destructive",
-      bgColor: "bg-destructive/10",
-    }, */
+    {
+      title: "Closed Loans",
+      value: closedLoansCount,
+      icon: CheckCircle2,
+      trend: "All-time history",
+      trendUp: true,
+      color: "text-primary",
+      bgColor: "bg-primary/5",
+    },
   ]
 
   return (
@@ -118,29 +111,37 @@ export function DashboardScreen() {
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         {statCards.map((stat) => (
           <Card key={stat.title} className="border border-border">
-            <CardContent className="flex items-start gap-4 p-5">
-              <div className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${stat.bgColor}`}>
-                <stat.icon className={`size-5 ${stat.color}`} />
+            <CardContent className="flex items-start gap-2.5 p-3 pt-4">
+              <div className={`flex size-9 shrink-0 items-center justify-center rounded-xl ${stat.bgColor}`}>
+                <stat.icon className={`size-4 ${stat.color}`} />
               </div>
-              <div className="flex flex-col gap-1">
-                <p className="text-xs font-medium text-muted-foreground">{stat.title}</p>
-                <p className="text-xl font-bold text-foreground">{stat.value}</p>
+              <div className="flex flex-col gap-0.5 min-w-0">
+                <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground truncate" title={stat.title}>
+                  {stat.title}
+                </p>
+                <p className="text-base font-bold text-foreground truncate">
+                  {stat.value}
+                </p>
                 <div className="flex items-center gap-1">
                   {stat.trendUp ? (
                     <ArrowUpRight className="size-3 text-chart-2" />
                   ) : (
                     <ArrowDownRight className="size-3 text-destructive" />
                   )}
-                  <span className="text-xs text-muted-foreground">{stat.trend}</span>
+                  <span className="text-[10px] text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis">
+                    {stat.trend}
+                  </span>
                 </div>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
+
+
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

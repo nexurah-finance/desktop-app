@@ -43,6 +43,21 @@ export const api = {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(l)
   }).then(r => r.json()),
+  closeLoan: (id: string, data: any, userId?: string) => {
+    const url = userId ? `${API_BASE}/loans/${id}/close?userId=${userId}` : `${API_BASE}/loans/${id}/close`;
+    return fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }).then(async r => {
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({ message: `HTTP ${r.status}: ${r.statusText}` }))
+        throw new Error(err.message || 'Failed to close loan')
+      }
+      return r.json()
+    });
+  },
+
 
   getPayments: (userId?: string) => {
     const url = userId ? `${API_BASE}/payments?userId=${userId}` : `${API_BASE}/payments`;
