@@ -17,7 +17,6 @@ export function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [rememberMe, setRememberMe] = useState(false)
 
   const handleLogin = async () => {
     setLoading(true)
@@ -25,9 +24,7 @@ export function LoginScreen() {
     try {
       const loggedInUser = await api.login({ email, password })
       setUser(loggedInUser)
-      if (rememberMe) {
-        localStorage.setItem("user", JSON.stringify(loggedInUser))
-      }
+      localStorage.setItem("user", JSON.stringify(loggedInUser))
       await loadDataForUser(loggedInUser)
       setIsLoggedIn(true)
       setScreen("dashboard")
@@ -94,17 +91,7 @@ export function LoginScreen() {
                 </Button>
               </div>
             </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="remember"
-                  checked={rememberMe}
-                  onCheckedChange={(v) => setRememberMe(!!v)}
-                />
-                <Label htmlFor="remember" className="text-sm text-muted-foreground font-normal cursor-pointer">
-                  Remember me
-                </Label>
-              </div>
+            <div className="flex items-center justify-end">
               <Button 
                 variant="link" 
                 size="sm" 

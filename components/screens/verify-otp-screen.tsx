@@ -30,6 +30,7 @@ export function VerifyOtpScreen() {
         otp
       })
       setUser(response.user)
+      localStorage.setItem("user", JSON.stringify(response.user))
       await loadDataForUser(response.user)
       setIsLoggedIn(true)
       setScreen("dashboard")
