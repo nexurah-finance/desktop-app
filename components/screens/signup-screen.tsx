@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Landmark, ArrowLeft, Eye, EyeOff } from "lucide-react"
+import { Landmark, ArrowLeft, Eye, EyeOff, Phone, Mail, ShieldAlert } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -19,6 +19,7 @@ export function SignupScreen() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showFrozenModal, setShowFrozenModal] = useState(false)
 
   const handleSendOtp = async () => {
     if (!name || !email || !password || !confirmPassword || !companyName) {
@@ -34,6 +35,14 @@ export function SignupScreen() {
     setLoading(true)
     setError(null)
     try {
+      // Check if signups are enabled globally
+      const globalSettings = await api.getGlobalSettings()
+      if (globalSettings.signupEnabled === false) {
+        setShowFrozenModal(true)
+        setLoading(false)
+        return
+      }
+
       await api.sendOtp(email)
       setSignupData({ name, email, password, companyName })
       setScreen("verify-otp")
@@ -149,6 +158,57 @@ export function SignupScreen() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Signup Frozen / Contact Modal */}
+      {showFrozenModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-300">
+          <Card className="w-full max-w-sm border-2 border-primary/20 shadow-2xl animate-in zoom-in-95 duration-300">
+            <CardHeader className="text-center pb-2">
+              <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-primary/10">
+                <ShieldAlert className="size-8 text-primary" />
+              </div>
+              <CardTitle className="text-2xl font-bold tracking-tight">Sign-up Temporarily Unavailable</CardTitle>
+              <CardDescription>
+                Public registration is currently restricted. Please contact our support team to activate your account.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6 pt-4">
+              <div className="space-y-4">
+                 <div className="flex items-center gap-4 p-3 rounded-xl bg-secondary/50 border border-border/50">
+                    <div className="size-10 flex items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                       <Mail className="size-5" />
+                    </div>
+                    <div>
+                       <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Email Support</p>
+                       <p className="font-semibold text-sm">nexurah@gmail.com</p>
+                    </div>
+                 </div>
+                 <div className="flex items-center gap-4 p-3 rounded-xl bg-secondary/50 border border-border/50">
+                    <div className="size-10 flex items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                       <Phone className="size-5" />
+                    </div>
+                    <div>
+                       <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Phone / WhatsApp</p>
+                       <p className="font-semibold text-sm">+91 96009 50190</p>
+                    </div>
+                 </div>
+              </div>
+
+              <div className="pt-2">
+                 <Button className="w-full" variant="outline" onClick={() => {
+                    setShowFrozenModal(false)
+                    setScreen("login")
+                 }}>
+                    Back to Login
+                 </Button>
+              </div>
+              <p className="text-[10px] text-center text-muted-foreground italic">
+                Get premium features and managed services by joining the Nexurah network.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }

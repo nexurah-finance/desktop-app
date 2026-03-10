@@ -202,4 +202,5 @@ export const api = {
     }
     return r.json()
   }),
+  getGlobalSettings: () => fetch(`${API_BASE}/settings`).then(r => r.json()),
 };
