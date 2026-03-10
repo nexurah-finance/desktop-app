@@ -4,6 +4,9 @@ import { AppProvider, useApp } from "@/lib/store"
 import { AppSidebar } from "@/components/app-sidebar"
 import { TopNavbar } from "@/components/top-navbar"
 import { LoginScreen } from "@/components/screens/login-screen"
+import { SignupScreen } from "@/components/screens/signup-screen"
+import { VerifyOtpScreen } from "@/components/screens/verify-otp-screen"
+import { ForgotPasswordScreen } from "@/components/screens/forgot-password-screen"
 import { DashboardScreen } from "@/components/screens/dashboard-screen"
 import { CustomersScreen } from "@/components/screens/customers-screen"
 import { AddCustomerScreen } from "@/components/screens/add-customer-screen"
@@ -20,6 +23,9 @@ function AppContent() {
   const { screen, isLoggedIn } = useApp()
 
   if (!isLoggedIn) {
+    if (screen === "signup") return <SignupScreen />
+    if (screen === "verify-otp") return <VerifyOtpScreen />
+    if (screen === "forgot-password") return <ForgotPasswordScreen />
     return <LoginScreen />
   }
 

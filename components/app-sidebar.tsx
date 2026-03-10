@@ -55,7 +55,7 @@ const navItems: { label: string; icon: typeof LayoutDashboard; screen: Screen }[
 ]
 
 function AppSidebarContent() {
-  const { screen, setScreen, setIsLoggedIn, setUser, notifications, settings } = useApp()
+  const { screen, setScreen, logout, notifications, settings, user } = useApp()
   const { open } = useSidebar()
   const unreadCount = notifications.filter((n) => !n.read).length
 
@@ -69,7 +69,7 @@ function AppSidebarContent() {
           {open && (
             <div className="flex flex-col leading-tight overflow-hidden transition-all duration-200">
               <span className="text-sm font-bold tracking-tight truncate">
-                {settings.businessName}
+                {user?.companyName || settings.businessName}
               </span>
               <span className="text-[10px] opacity-70 uppercase tracking-wider font-medium">
                 Finance Manager
@@ -132,9 +132,7 @@ function AppSidebarContent() {
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                   <AlertDialogAction
                     onClick={() => {
-                      setIsLoggedIn(false)
-                      setUser(null)
-                      setScreen("login")
+                      logout()
                     }}
                     className={buttonVariants({ variant: "destructive" })}
                   >

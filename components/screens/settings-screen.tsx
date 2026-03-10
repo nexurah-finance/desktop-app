@@ -12,13 +12,13 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { useApp } from "@/lib/store"
 
 export function SettingsScreen() {
-  const { settings, updateSettings, user, changePassword, customers, loans, payments } = useApp()
+  const { settings, updateSettings, user, updateUser, changePassword, customers, loans, payments } = useApp()
   const [passForm, setPassForm] = useState({ old: "", new: "", confirm: "" })
   const [passLoading, setPassLoading] = useState(false)
   const [passStatus, setPassStatus] = useState<{ type: "success" | "error", msg: string } | null>(null)
 
   // Local state for company settings to avoid saving on every keystroke
-  const [businessName, setBusinessName] = useState(settings.businessName)
+  const [businessName, setBusinessName] = useState(user?.companyName || settings.businessName)
   const [interestRate, setInterestRate] = useState(settings.defaultInterestRate)
   const [bizLoading, setBizLoading] = useState(false)
   const [bizStatus, setBizStatus] = useState<{ type: "success" | "error", msg: string } | null>(null)
@@ -47,7 +47,8 @@ export function SettingsScreen() {
     setBizLoading(true)
     setBizStatus(null)
     try {
-      await updateSettings({ businessName: businessName, defaultInterestRate: interestRate })
+      await updateSettings({ defaultInterestRate: interestRate })
+      await updateUser({ companyName: businessName })
       setBizStatus({ type: "success", msg: "Business identity updated!" })
       setTimeout(() => setBizStatus(null), 3000)
     } catch (err) {

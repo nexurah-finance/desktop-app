@@ -17,6 +17,7 @@ export function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [rememberMe, setRememberMe] = useState(false)
 
   const handleLogin = async () => {
     setLoading(true)
@@ -24,7 +25,10 @@ export function LoginScreen() {
     try {
       const loggedInUser = await api.login({ email, password })
       setUser(loggedInUser)
-      await loadDataForUser(loggedInUser)   // fetch with the FRESH user — no stale closure
+      if (rememberMe) {
+        localStorage.setItem("user", JSON.stringify(loggedInUser))
+      }
+      await loadDataForUser(loggedInUser)
       setIsLoggedIn(true)
       setScreen("dashboard")
     } catch (err: any) {
@@ -92,18 +96,35 @@ export function LoginScreen() {
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Checkbox id="remember" />
+                <Checkbox
+                  id="remember"
+                  checked={rememberMe}
+                  onCheckedChange={(v) => setRememberMe(!!v)}
+                />
                 <Label htmlFor="remember" className="text-sm text-muted-foreground font-normal cursor-pointer">
                   Remember me
                 </Label>
               </div>
-              <Button variant="link" size="sm" className="h-auto p-0 text-xs">
+              <Button 
+                variant="link" 
+                size="sm" 
+                className="h-auto p-0 text-xs text-muted-foreground/80 hover:text-primary transition-colors"
+                onClick={() => setScreen("forgot-password")}
+              >
                 Forgot password?
               </Button>
             </div>
             <Button onClick={handleLogin} disabled={loading} className="w-full">
               {loading ? "Signing in..." : "Sign in"}
             </Button>
+            <div className="text-center mt-2">
+              <p className="text-sm text-muted-foreground">
+                Don&apos;t have an account?{" "}
+                <Button variant="link" className="p-0 h-auto font-normal" onClick={() => setScreen("signup")}>
+                  Sign Up
+                </Button>
+              </p>
+            </div>
           </CardContent>
         </Card>
         <p className="mt-6 text-center text-xs text-muted-foreground">

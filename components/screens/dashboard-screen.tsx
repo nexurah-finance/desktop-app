@@ -30,15 +30,6 @@ import {
 } from "recharts"
 import { useApp } from "@/lib/store"
 
-const monthlyCollectionData = [
-  { month: "Jul", amount: 1500 },
-  { month: "Aug", amount: 5500 },
-  { month: "Sep", amount: 7550 },
-  { month: "Oct", amount: 8800 },
-  { month: "Nov", amount: 11750 },
-  { month: "Dec", amount: 4000 },
-  { month: "Jan", amount: 4000 },
-]
 
 export function DashboardScreen() {
   const { customers, loans, payments, notifications, setScreen, setSelectedCustomerId, refreshData } = useApp()
@@ -146,15 +137,6 @@ export function DashboardScreen() {
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Dashboard</h1>
           <p className="text-sm text-muted-foreground">Welcome back, here{"'"}s your financial overview.</p>
         </div>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={handleRefresh}
-          disabled={isRefreshing}
-        >
-          <TrendingUp className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
-          {isRefreshing ? "Syncing..." : "Sync DB"}
-        </Button>
       </div>
 
       {/* Stat Cards */}
@@ -199,7 +181,7 @@ export function DashboardScreen() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={260}>
-              <AreaChart data={monthlyCollectionData}>
+              <AreaChart data={last7MonthsData}>
                 <defs>
                   <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="oklch(0.35 0.12 260)" stopOpacity={0.3} />

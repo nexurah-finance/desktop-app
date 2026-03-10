@@ -43,6 +43,10 @@ export type Notification = {
 
 export type Screen =
   | "login"
+  | "signup"
+  | "verify-otp"
+  | "forgot-password"
+  | "reset-password"
   | "dashboard"
   | "customers"
   | "add-customer"
@@ -61,7 +65,7 @@ type AppState = {
   setScreen: (screen: Screen) => void
   isLoggedIn: boolean
   setIsLoggedIn: (v: boolean) => void
-  user: { id: string, name: string, email: string, role: string } | null
+  user: { id: string, name: string, email: string, role: string, companyName?: string } | null
   setUser: (user: any) => void
   loadDataForUser: (user: AppState["user"]) => Promise<void>
   customers: Customer[]
@@ -92,10 +96,16 @@ type AppState = {
     darkMode: boolean
   }
   updateSettings: (s: Partial<AppState["settings"]>) => Promise<void>
+  updateUser: (data: Partial<AppState["user"]>) => Promise<void>
   changePassword: (data: any) => Promise<void>
   searchQuery: string
   setSearchQuery: (query: string) => void
   refreshData: () => Promise<void>
+  signupData: any
+  setSignupData: (data: any) => void
+  resetEmail: string
+  setResetEmail: (email: string) => void
+  logout: () => void
 }
 
 const AppContext = createContext<AppState | null>(null)
@@ -125,6 +135,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
     defaultInterestRate: 3,
     darkMode: false,
   })
+  const [signupData, setSignupData] = useState<any>(null)
+  const [resetEmail, setResetEmail] = useState("")
+
+  // Restore session on mount
+  useEffect(() => {
+    const savedUser = localStorage.getItem("user")
+    if (savedUser) {
+      const parsedUser = JSON.parse(savedUser)
+      setUser(parsedUser)
+      setIsLoggedIn(true)
+      setScreen("dashboard")
+      loadDataForUser(parsedUser)
+    }
+  }, [])
 
   // loadDataForUser: called directly after login with the fresh user object.
   // This avoids the React stale-closure bug where refreshData sees user=null
@@ -235,6 +259,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setSettings((prev) => ({ ...prev, ...updated }))
   }, [])
 
+  const updateUser = useCallback(async (data: any) => {
+    if (!user) return
+    const updated = await api.updateUser(user.id, data)
+    setUser((prev: any) => ({ ...prev, ...updated }))
+  }, [user])
+  const logout = useCallback(() => {
+    setIsLoggedIn(false)
+    setUser(null)
+    setCustomers([])
+    setLoans([])
+    setPayments([])
+    setNotifications([])
+    setSettings({
+      businessName: "Nexurah",
+      currency: "INR",
+      interestModel: "simple",
+      defaultInterestRate: 3,
+      darkMode: false,
+    })
+    localStorage.removeItem("user")
+    setScreen("login")
+  }, [])
+
   return (
     <AppContext.Provider
       value={{
@@ -249,12 +296,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
         payments, addPayment, updatePayment, deletePayment,
         notifications, markNotificationRead,
         settings, updateSettings,
+        updateUser,
         searchQuery, setSearchQuery,
         refreshData: async () => {
           if (user) await loadDataForUser(user)
         },
 
         changePassword,
+        signupData,
+        setSignupData,
+        resetEmail,
+        setResetEmail,
+        logout,
       }}
     >
       {children}

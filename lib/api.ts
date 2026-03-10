@@ -7,8 +7,83 @@ export const api = {
     body: JSON.stringify(credentials)
   }).then(async r => {
     if (!r.ok) {
-      const err = await r.json()
-      throw new Error(err.message || 'Invalid credentials')
+      const text = await r.text()
+      let message = 'Invalid credentials'
+      try {
+        const json = JSON.parse(text)
+        message = json.message || message
+      } catch (e) {
+        console.error('Non-JSON error response:', text)
+      }
+      throw new Error(message)
+    }
+    return r.json()
+  }),
+  sendOtp: (email: string) => fetch(`${API_BASE}/auth/send-otp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email })
+  }).then(async r => {
+    if (!r.ok) {
+      const text = await r.text()
+      let message = 'Failed to send OTP'
+      try {
+        const json = JSON.parse(text)
+        message = json.message || message
+      } catch (e) {
+        console.error('Non-JSON error response:', text)
+      }
+      throw new Error(message)
+    }
+    return r.json()
+  }),
+  signup: (data: any) => fetch(`${API_BASE}/auth/signup`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  }).then(async r => {
+    if (!r.ok) {
+      const text = await r.text()
+      let message = 'Failed to sign up'
+      try {
+        const json = JSON.parse(text)
+        message = json.message || message
+      } catch (e) {
+        console.error('Non-JSON error response:', text)
+      }
+      throw new Error(message)
+    }
+    return r.json()
+  }),
+  forgotPassword: (email: string) => fetch(`${API_BASE}/auth/forgot-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email })
+  }).then(async r => {
+    if (!r.ok) {
+      const text = await r.text()
+      let message = 'Failed to send reset email'
+      try {
+        const json = JSON.parse(text)
+        message = json.message || message
+      } catch (e) {}
+      throw new Error(message)
+    }
+    return r.json()
+  }),
+  resetPassword: (data: any) => fetch(`${API_BASE}/auth/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  }).then(async r => {
+    if (!r.ok) {
+      const text = await r.text()
+      let message = 'Failed to reset password'
+      try {
+        const json = JSON.parse(text)
+        message = json.message || message
+      } catch (e) {}
+      throw new Error(message)
     }
     return r.json()
   }),
@@ -108,6 +183,22 @@ export const api = {
     if (!r.ok) {
       const err = await r.json()
       throw new Error(err.message || 'Failed to update password')
+    }
+    return r.json()
+  }),
+  updateUser: (id: string, data: any) => fetch(`${API_BASE}/users/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  }).then(async r => {
+    if (!r.ok) {
+      const text = await r.text()
+      let message = 'Failed to update user'
+      try {
+        const json = JSON.parse(text)
+        message = json.message || message
+      } catch (e) {}
+      throw new Error(message)
     }
     return r.json()
   }),

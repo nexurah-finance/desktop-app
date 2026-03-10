@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Search, Bell, User, LogOut } from "lucide-react"
+import { Search, Bell, User, LogOut, RefreshCw } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { SidebarTrigger } from "@/components/ui/sidebar"
@@ -28,7 +28,8 @@ import { useApp } from "@/lib/store"
 import { Separator } from "@/components/ui/separator"
 
 export function TopNavbar() {
-  const { setScreen, setIsLoggedIn, setUser, notifications, settings, user, searchQuery, setSearchQuery } = useApp()
+  const { setScreen, isLoggedIn, user, logout, notifications, settings, searchQuery, setSearchQuery, refreshData } = useApp()
+  const [refreshing, setRefreshing] = useState(false)
   const [showLogoutDialog, setShowLogoutDialog] = useState(false)
   const unreadCount = notifications.filter((n) => !n.read).length
   
@@ -39,11 +40,15 @@ export function TopNavbar() {
       setScreen("customers") // Default search target
     }
   }
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    await refreshData()
+    setRefreshing(false)
+  }
+
 
   const handleLogout = () => {
-    setIsLoggedIn(false)
-    setUser(null)
-    setScreen("login")
+    logout()
   }
 
   return (
@@ -54,7 +59,7 @@ export function TopNavbar() {
         
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold text-primary uppercase tracking-wider">
-            {settings.businessName}
+            {user?.companyName || settings.businessName}
           </span>
         </div>
 
@@ -83,6 +88,17 @@ export function TopNavbar() {
             )}
             <span className="sr-only">Notifications</span>
           </Button> */}
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-muted-foreground hover:text-primary"
+            onClick={handleRefresh}
+            disabled={refreshing}
+          >
+            <RefreshCw className={`size-4 ${refreshing ? "animate-spin" : ""}`} />
+            <span className="sr-only">Refresh Data</span>
+          </Button>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -131,7 +147,7 @@ export function TopNavbar() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleLogout}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-white hover:bg-destructive/90"
             >
               Logout
             </AlertDialogAction>

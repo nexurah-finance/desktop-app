@@ -51,11 +51,11 @@ export function ReportsScreen() {
       grouped.set(p.date, (grouped.get(p.date) || 0) + p.amount)
     })
     return Array.from(grouped.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([date, amount]) => ({
         date: new Date(date).toLocaleDateString("en-IN", { day: "2-digit", month: "short" }),
         amount,
       }))
-      .sort((a, b) => a.date.localeCompare(b.date))
   }, [payments])
 
   // Group payments by month
@@ -66,6 +66,7 @@ export function ReportsScreen() {
       grouped.set(monthKey, (grouped.get(monthKey) || 0) + p.amount)
     })
     return Array.from(grouped.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([month, amount]) => {
         const d = new Date(month + "-01")
         return {
@@ -73,7 +74,6 @@ export function ReportsScreen() {
           amount,
         }
       })
-      .sort()
   }, [payments])
 
   // Loan summary
@@ -182,18 +182,6 @@ export function ReportsScreen() {
           <p className="text-sm text-muted-foreground">Detailed financial reports and analytics</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={async () => {
-              const b = document.getElementById('sync-btn-icon')
-              b?.classList.add('animate-spin')
-              await refreshData()
-              b?.classList.remove('animate-spin')
-            }}
-          >
-            <TrendingUp id="sync-btn-icon" className="mr-2 size-4" /> Sync DB
-          </Button>
           <Button variant="outline" size="sm" onClick={exportToExcel}>
             <FileSpreadsheet className="mr-2 size-4" /> Export Excel
           </Button>
