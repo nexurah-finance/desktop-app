@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { useApp } from "@/lib/store"
+import versionInfo from "../../version-info.json"
 
 export function SettingsScreen() {
   const { settings, updateSettings, user, updateUser, changePassword, customers, loans, payments } = useApp()
@@ -267,9 +268,12 @@ export function SettingsScreen() {
         </div>
       </div>
       
-      <div className="text-center mt-6">
-        <p className="text-xs text-muted-foreground opacity-50">
-          Nexurah Finance Manager Professional v1.2
+      <div className="text-center mt-6 flex flex-col gap-1 items-center opacity-40 hover:opacity-100 transition-opacity">
+        <p className="text-xs font-medium text-foreground">
+          Nexurah Finance Manager Professional v{versionInfo.current}
+        </p>
+        <p className="text-[10px] text-muted-foreground italic">
+          Last build: v{versionInfo.last} | {new Date(versionInfo.updatedAt).toLocaleDateString()}
         </p>
       </div>
     </div>

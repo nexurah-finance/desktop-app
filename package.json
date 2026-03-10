@@ -1,6 +1,6 @@
 {
   "name": "finance-manager",
-  "version": "0.1.0",
+  "version": "1.2.3",
   "private": true,
   "main": "main/main.js",
   "scripts": {
@@ -9,6 +9,8 @@
     "dev": "concurrently \"npm run dev:next\" \"npm run dev:electron\"",
     "build": "next build",
     "package": "npm run build && electron-builder --win",
+    "release": "npm run bump-version && npm run package",
+    "bump-version": "node scripts/bump-version.js",
     "lint": "eslint ."
   },
   "dependencies": {
